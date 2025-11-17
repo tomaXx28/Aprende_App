@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "131485264548",
+    "project_id": "aprende-app-cm",
+    "storage_bucket": "aprende-app-cm.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:131485264548:android:ec8a47fa5755c695381431",
+        "android_client_info": {
+          "package_name": "com.conectamayor.aprendetec"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBvggbh6ietZWaG2CeXPkQtIpfNjWhym_I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:131485264548:android:5703858cbb96882a381431",
+        "android_client_info": {
+          "package_name": "com.example.aprende_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBvggbh6ietZWaG2CeXPkQtIpfNjWhym_I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
