@@ -74,7 +74,7 @@ class _VisorPdfScreenState extends State<VisorPdfScreen>
   Widget build(BuildContext context) {
     final rotation = Tween<double>(
       begin: 0,
-      end: isForward ? -1.6 : 1.6, // flip hacia un lado u otro
+      end: isForward ? -1.6 : 1.6, // flip hacia un lado u 
     ).animate(CurvedAnimation(
       parent: pageFlipController,
       curve: Curves.easeOut,
