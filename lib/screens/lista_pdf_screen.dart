@@ -7,6 +7,7 @@ class ListaPdfsScreen extends StatelessWidget {
   final Tarjeta categoria;
   final List<Tarjeta> pdfs;
 
+
   const ListaPdfsScreen({
     super.key,
     required this.categoria,
@@ -38,10 +39,11 @@ class ListaPdfsScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => VisorPdfScreen(
-                    url: pdf.urlPdf!,
-                    titulo: pdf.titulo ?? 'Guía',
-                  ),
+                  builder:
+                      (_) => VisorPdfScreen(
+                        url: pdf.urlPdf!,
+                        titulo: pdf.titulo ?? 'Guía',
+                      ),
                 ),
               );
             },
@@ -56,10 +58,28 @@ class _PdfCard extends StatelessWidget {
   final Tarjeta pdf;
   final VoidCallback onTap;
 
-  const _PdfCard({
-    required this.pdf,
-    required this.onTap,
-  });
+  const _PdfCard({required this.pdf, required this.onTap});
+
+  Widget _buildPdfLeading(Tarjeta pdf) {
+    // 1) Si el PDF tiene imagenURL → usarla
+    if (pdf.imagen != null && pdf.imagen!.trim().isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.network(
+          pdf.imagen!,
+          width: 42,
+          height: 42,
+          fit: BoxFit.cover,
+          errorBuilder:
+              (_, __, ___) =>
+                  const Icon(Icons.picture_as_pdf, size: 42, color: Colors.red),
+        ),
+      );
+    }
+
+    // 2) Si no tiene imagen → ícono PDF rojo
+    return const Icon(Icons.picture_as_pdf, size: 42, color: Colors.red);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -84,7 +104,7 @@ class _PdfCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(Icons.picture_as_pdf, size: 42, color: Colors.red),
+            _buildPdfLeading(pdf),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
@@ -92,10 +112,9 @@ class _PdfCard extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w800),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   if (subtitle.isNotEmpty) ...[
                     const SizedBox(height: 4),
@@ -166,10 +185,7 @@ class _BottomNavBar extends StatelessWidget {
       unselectedItemColor: Colors.white,
       currentIndex: 0,
       items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home),
-          label: 'Inicio',
-        ),
+        BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Inicio'),
         BottomNavigationBarItem(
           icon: Icon(Icons.favorite_border),
           label: 'Favoritos',

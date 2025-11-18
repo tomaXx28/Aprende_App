@@ -27,6 +27,10 @@ dependencies:
 
   cupertino_icons: ^1.0.6
   animations: ^2.1.0
+  flutter_inappwebview: ^6.1.5
+  package_info_plus: ^9.0.0
+  shared_preferences: ^2.5.3
+  flutter_secure_storage: ^9.2.4
 
 dev_dependencies:
   flutter_test:

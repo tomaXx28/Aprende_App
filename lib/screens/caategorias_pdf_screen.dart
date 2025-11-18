@@ -1,11 +1,10 @@
-import 'package:aprende_app/screens/lista_pdf_screen.dart';
 import 'package:aprende_app/services/agrupador_pdf.dart';
 import 'package:aprende_app/services/tarjeta_services.dart';
 import 'package:flutter/material.dart';
 
 import '../models/categoria_pdf.dart';
 import '../models/tarjeta.dart';
-
+import 'visor_pdf_screen.dart';
 
 class CategoriasPdfsScreen extends StatefulWidget {
   const CategoriasPdfsScreen({super.key});
@@ -16,23 +15,31 @@ class CategoriasPdfsScreen extends StatefulWidget {
 
 class _CategoriasPdfsScreenState extends State<CategoriasPdfsScreen> {
   final _service = TarjetasService();
-  late Future<List<CategoriaPdf>> _futureCategorias;
+  late Future<List<Tarjeta>> _futurePdfs;
 
   @override
   void initState() {
     super.initState();
-    _futureCategorias = _cargar();
+    _futurePdfs = _cargarSoloAprende();
   }
 
-  Future<List<CategoriaPdf>> _cargar() async {
+  /// 🔥 Carga solo los PDFs de la categoría "Aprende a usar tu celular"
+  Future<List<Tarjeta>> _cargarSoloAprende() async {
     final tarjetas = await _service.obtenerTarjetas();
     final categorias = agruparPorCategoria(tarjetas);
 
-    // Ordenamos por título para que quede más bonito
-    categorias.sort((a, b) =>
-        (a.categoria.titulo ?? '').compareTo(b.categoria.titulo ?? ''));
+    // Buscar categoría exacta
+    final cat = categorias.firstWhere(
+      (c) =>
+          (c.categoria.titulo ?? "").toLowerCase() ==
+          "aprende a usar tu celular".toLowerCase(),
+      orElse: () => CategoriaPdf(
+        categoria: Tarjeta(id: 0, titulo: "", subtitulo: "", tipoContenido: ''),
+        pdfs: [],
+      ),
+    );
 
-    return categorias;
+    return cat.pdfs; // <-- PDFs ya filtrados
   }
 
   @override
@@ -40,14 +47,13 @@ class _CategoriasPdfsScreenState extends State<CategoriasPdfsScreen> {
     return Scaffold(
       appBar: AppBar(
         leadingWidth: 80,
-        leading: const SizedBox.shrink(), // sin botón volver en home
-        title: const Text('Aprende sobre tecnología'),
+        leading: const SizedBox.shrink(),
+        title: const Text('Bienvenido a Aprende'),
       ),
-      bottomNavigationBar: const _BottomNavBar(),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: FutureBuilder<List<CategoriaPdf>>(
-          future: _futureCategorias,
+        child: FutureBuilder<List<Tarjeta>>(
+          future: _futurePdfs,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
@@ -55,35 +61,35 @@ class _CategoriasPdfsScreenState extends State<CategoriasPdfsScreen> {
             if (snapshot.hasError) {
               return Center(
                 child: Text(
-                  'Error al cargar categorías:\n${snapshot.error}',
+                  'Error al cargar PDFs:\n${snapshot.error}',
                   textAlign: TextAlign.center,
                 ),
               );
             }
 
-            final categorias = snapshot.data ?? [];
+            final pdfs = snapshot.data ?? [];
 
-            if (categorias.isEmpty) {
+            if (pdfs.isEmpty) {
               return const Center(
                 child: Text('No hay guías disponibles por ahora.'),
               );
             }
 
+            /// 🔥 MOSTRAR PDFS DIRECTAMENTE EN EL HOME
             return ListView.separated(
-              itemCount: categorias.length,
+              itemCount: pdfs.length,
               separatorBuilder: (_, __) => const SizedBox(height: 16),
               itemBuilder: (_, i) {
-                final cat = categorias[i];
-                return _CategoriaCard(
-                  categoria: cat.categoria,
-                  cantidad: cat.pdfs.length,
+                final pdf = pdfs[i];
+                return _PdfCard(
+                  pdf: pdf,
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => ListaPdfsScreen(
-                          categoria: cat.categoria,
-                          pdfs: cat.pdfs,
+                        builder: (_) => VisorPdfScreen(
+                          url: pdf.urlPdf ?? "",
+                          titulo: pdf.titulo ?? "Guía",
                         ),
                       ),
                     );
@@ -98,26 +104,44 @@ class _CategoriasPdfsScreenState extends State<CategoriasPdfsScreen> {
   }
 }
 
-class _CategoriaCard extends StatelessWidget {
-  final Tarjeta categoria;
-  final int cantidad;
+/// ---------------------------------------------------------------------------
+/// 🔥  MISMA TARJETA PDF QUE USAS EN LISTA_PDF_SCREEN
+/// ---------------------------------------------------------------------------
+
+class _PdfCard extends StatelessWidget {
+  final Tarjeta pdf;
   final VoidCallback onTap;
 
-  const _CategoriaCard({
-    required this.categoria,
-    required this.cantidad,
-    required this.onTap,
-  });
+  const _PdfCard({required this.pdf, required this.onTap});
+
+  Widget _buildPdfLeading(Tarjeta pdf) {
+    if (pdf.imagen != null && pdf.imagen!.trim().isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.network(
+          pdf.imagen!,
+          width: 42,
+          height: 42,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) =>
+              const Icon(Icons.picture_as_pdf, size: 42, color: Colors.red),
+        ),
+      );
+    }
+
+    return const Icon(Icons.picture_as_pdf, size: 42, color: Colors.red);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final title = categoria.titulo ?? 'Sin título';
-    final subtitle = categoria.subtitulo ?? 'Guías disponibles';
+    final title = pdf.titulo ?? 'Sin título';
+    final subtitle = pdf.subtitulo ?? '';
 
     return InkWell(
       borderRadius: BorderRadius.circular(24),
       onTap: onTap,
       child: Container(
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
@@ -131,86 +155,31 @@ class _CategoriaCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Container(
-              width: 110,
-              height: 110,
-              decoration: const BoxDecoration(
-                color: Color(0xFFF2F8FF),
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(24),
-                  bottomLeft: Radius.circular(24),
-                ),
-              ),
-              child: const Icon(Icons.menu_book, size: 50),
-            ),
+            _buildPdfLeading(pdf),
+            const SizedBox(width: 16),
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16.0, vertical: 12.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleLarge
-                          ?.copyWith(fontWeight: FontWeight.w800),
-                    ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
+                  if (subtitle.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontSize: 15,
-                          ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '$cantidad guía(s)',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            fontStyle: FontStyle.italic,
-                          ),
+                      style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ],
-                ),
+                ],
               ),
-            ),
-            const Padding(
-              padding: EdgeInsets.only(right: 16.0),
-              child: Icon(Icons.arrow_forward_ios),
             ),
           ],
         ),
       ),
-    );
-  }
-}
-
-class _BottomNavBar extends StatelessWidget {
-  const _BottomNavBar();
-
-  @override
-  Widget build(BuildContext context) {
-    return BottomNavigationBar(
-      backgroundColor: const Color(0xFF242E74),
-      selectedItemColor: const Color(0xFFE68C3A),
-      unselectedItemColor: Colors.white,
-      items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home),
-          label: 'Inicio',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.favorite_border),
-          label: 'Favoritos',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.notifications_none),
-          label: 'Notificaciones',
-        ),
-      ],
-      currentIndex: 0,
-      onTap: (_) {},
     );
   }
 }

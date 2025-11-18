@@ -1,6 +1,12 @@
 import 'dart:io';
+
+import 'package:aprende_app/EM/buttoms.dart';
+import 'package:aprende_app/EM/constants.dart';
+import 'package:aprende_app/EM/screen_basse_top.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
+import 'package:animations/animations.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 
@@ -20,246 +26,361 @@ class VisorPdfScreen extends StatefulWidget {
 
 class _VisorPdfScreenState extends State<VisorPdfScreen>
     with SingleTickerProviderStateMixin {
-  String? pdfPath;
+  String? pdfPath = '';
   int totalPages = 0;
   int currentPage = 0;
-  late AnimationController pageFlipController;
+  int? prevPage = 0;
 
   PDFViewController? pdfController;
+  late Animation<double> animation;
+  bool animateForward = true;
 
-  bool isForward = true;
-
+  // Para el botón de perfil en el AppBar
+/*   final GlobalKey<ProfileActionButtonState> _profileKey =
+      GlobalKey<ProfileActionButtonState>();
+ */
   @override
   void initState() {
     super.initState();
+  }
 
-    pageFlipController = AnimationController(
-      duration: const Duration(milliseconds: 500),
-      vsync: this,
+  void _nextPage() {
+    if (currentPage < totalPages - 1) {
+      setState(() {
+        prevPage = currentPage;
+        currentPage++;
+        animateForward = true;
+      });
+    }
+  }
+
+  void _previousPage() {
+    if (currentPage > 0) {
+      setState(() {
+        prevPage = currentPage;
+        currentPage--;
+        animateForward = false;
+      });
+    }
+  }
+
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      centerTitle: true,
+      backgroundColor: const Color(0xFF242E74),
+      toolbarHeight: 100,
+      title: Text(
+        widget.titulo,
+        style: const TextStyle(color: Colors.white),
+        textAlign: TextAlign.center,
+      ),
+      /* leading: CustomerLeading(),
+      leadingWidth: 80,
+      actions: kIsWeb
+          ? []
+          : [
+              ProfileActionButton(
+                key: _profileKey,
+                nullBoton: false,
+              ),
+            ], */
     );
-
-    _descargarPDF();
-  }
-
-  Future<void> _descargarPDF() async {
-    final response = await http.get(Uri.parse(widget.url));
-    final dir = await getTemporaryDirectory();
-    final file = File("${dir.path}/temp.pdf");
-    await file.writeAsBytes(response.bodyBytes);
-    setState(() => pdfPath = file.path);
-  }
-
-  void _goTo(int page, bool forward) async {
-    if (page < 0 || page >= totalPages) return;
-
-    setState(() => isForward = forward);
-
-    await pageFlipController.forward(from: 0);
-
-    pdfController?.setPage(page);
-
-    setState(() => currentPage = page);
-  }
-
-  void _next() => _goTo(currentPage + 1, true);
-  void _previous() => _goTo(currentPage - 1, false);
-
-  @override
-  void dispose() {
-    pageFlipController.dispose();
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final rotation = Tween<double>(
-      begin: 0,
-      end: isForward ? -1.6 : 1.6, // flip hacia un lado u 
-    ).animate(CurvedAnimation(
-      parent: pageFlipController,
-      curve: Curves.easeOut,
-    ));
-
-    final translation = Tween<double>(
-      begin: 0,
-      end: isForward ? -180 : 180,
-    ).animate(CurvedAnimation(
-      parent: pageFlipController,
-      curve: Curves.easeOut,
-    ));
-
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF242E74),
-        leadingWidth: 80,
-        leading: _BotonVolver(),
-        title: Text(widget.titulo),
-      ),
-
-      body: pdfPath == null
-          ? const Center(child: CircularProgressIndicator())
-          : Stack(
-              children: [
-                AnimatedBuilder(
-                  animation: pageFlipController,
-                  builder: (context, child) =>
-                      Transform(
-                        alignment: Alignment.center,
-                        transform: Matrix4.identity()
-                          ..setEntry(3,2,0.001)
-                          ..rotateY(rotation.value)
-                          ..translate(translation.value)
-                          ..scale(1.0 - (pageFlipController.value * 0.02)),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.25),
-                                blurRadius: 10,
-                                spreadRadius: -3,
-                                offset: Offset(isForward ? -10 : 10, 0),
-                              )
-                            ],
-                          ),
-                          child: PDFView(
-                            key: ValueKey(currentPage),
-                            filePath: pdfPath!,
-                            enableSwipe: false,
-                            swipeHorizontal: false,
-                            defaultPage: currentPage,
-                            fitEachPage: true,
-                            fitPolicy: FitPolicy.BOTH,
-                            onRender: (pages) {
-                              setState(() => totalPages = pages ?? 0);
-                            },
-                            onViewCreated: (controller) =>
-                                pdfController = controller,
+    return MediaQuery(
+      data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
+      child: Scaffold(
+        appBar: _buildAppBar(),
+        backgroundColor: Colors.white,
+        bottomNavigationBar: Container(
+          height: 150 * MediaQuery.sizeOf(context).height / 770,
+          color: Colors.black,
+          child: Column(
+            children: [
+              Container(height: 10 * MediaQuery.sizeOf(context).height / 770),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  Visibility(
+                    visible: currentPage > 0,
+                    replacement: Flexible(
+                      child: SizedBox(
+                        height: 1,
+                        width: MediaQuery.of(context).size.height / 12,
+                      ),
+                    ),
+                    child: Flexible(
+                      child: GestureDetector(
+                        onTap: () {
+                          saveInteraction("PERSONALIZADO_PDF_Atras");
+                          _previousPage();
+                        },
+                        child: Buttons(Icons.chevron_left),
+                      ),
+                    ),
+                  ),
+                  Container(
+                    width: MediaQuery.of(context).size.width / 1000,
+                  ),
+                  Visibility(
+                    visible: currentPage < totalPages - 1,
+                    replacement: Flexible(
+                      child: SizedBox(
+                        height: 1,
+                        width: MediaQuery.of(context).size.height / 12,
+                      ),
+                    ),
+                    child: Flexible(
+                      child: GestureDetector(
+                        onTap: () {
+                          saveInteraction("PERSONALIZADO_PDF_Adelante");
+                          _nextPage();
+                        },
+                        child: Buttons(Icons.chevron_right),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(
+                width: MediaQuery.of(context).size.width,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    Expanded(
+                      flex: 10,
+                      child: Visibility(
+                        visible: currentPage > 0,
+                        replacement: Container(),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
+                          child: Align(
+                            alignment: Alignment.bottomCenter,
+                            child: Text(
+                              "Atrás",
+                              style: TextStyle(
+                                fontFamily: 'AtkinsonHyperlegible',
+                                fontSize:
+                                    MediaQuery.of(context).size.width / 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                            ),
                           ),
                         ),
                       ),
+                    ),
+                    Expanded(
+                      flex: 6,
+                      child: Text(
+                        "Página ${currentPage + 1}",
+                        style: TextStyle(
+                          fontFamily: 'AtkinsonHyperlegible',
+                          fontSize: MediaQuery.of(context).size.width / 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    Expanded(
+                      flex: 10,
+                      child: Visibility(
+                        visible: currentPage < totalPages - 1,
+                        replacement: Container(),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(10, 0, 0, 0),
+                          child: Align(
+                            alignment: Alignment.bottomCenter,
+                            child: Text(
+                              "Adelante",
+                              style: TextStyle(
+                                fontFamily: 'AtkinsonHyperlegible',
+                                fontSize:
+                                    MediaQuery.of(context).size.width / 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-
-                // ---------- BARRA INFERIOR ----------
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: _BarraInferior(
-                    currentPage: currentPage,
-                    totalPages: totalPages,
-                    next: _next,
-                    prev: _previous,
-                  ),
-                ),
-              ],
-            ),
-    );
-  }
-}
-
-// ---------------- BOTÓN VOLVER ----------------
-class _BotonVolver extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 16),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 55,
-            height: 55,
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-            ),
-            child: IconButton(
-              iconSize: 32,
-              onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.arrow_back, color: Color(0xFF242E74)),
-            ),
-          ),
-          const SizedBox(height: 2),
-          const Text("Volver",
-              style: TextStyle(color: Colors.white, fontSize: 12)),
-        ],
-      ),
-    );
-  }
-}
-
-// -------------- BARRA INFERIOR --------------
-class _BarraInferior extends StatelessWidget {
-  final int currentPage;
-  final int totalPages;
-  final VoidCallback next;
-  final VoidCallback prev;
-
-  const _BarraInferior({
-    required this.currentPage,
-    required this.totalPages,
-    required this.next,
-    required this.prev,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 120,
-      color: Colors.black87,
-      child: Column(
-        children: [
-          const SizedBox(height: 12),
-
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              currentPage > 0
-                  ? _BotonNavegacion(icon: Icons.chevron_left, onTap: prev)
-                  : const SizedBox(width: 60),
-
-              currentPage < totalPages - 1
-                  ? _BotonNavegacion(icon: Icons.chevron_right, onTap: next)
-                  : const SizedBox(width: 60),
+              ),
             ],
           ),
+        ),
+        body: FutureBuilder<File?>(
+          future: PdfFromUrl(widget.url),
+          builder: (BuildContext context, AsyncSnapshot<File?> snapshot) {
+            if (snapshot.hasData && snapshot.data != null) {
+              pdfPath = snapshot.data!.path;
 
-          const SizedBox(height: 8),
-          Text(
-            "Página ${currentPage + 1} de $totalPages",
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 17,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
+              return Stack(
+                children: [
+                  if (animateForward)
+                    PageTransitionSwitcher(
+                      duration: const Duration(milliseconds: 600),
+                      reverse: true,
+                      transitionBuilder:
+                          (child, primaryAnimation, secondaryAnimation) {
+                        animation = primaryAnimation;
+                        return AnimatedBuilder(
+                          animation: primaryAnimation,
+                          builder: (context, child) {
+                            final double zTranslation =
+                                10.0 * (1 - primaryAnimation.value);
+                            final double waveRotation =
+                                1.6 * (1 - primaryAnimation.value);
+                            final double waveTranslation =
+                                -400.0 * (1 - primaryAnimation.value);
+
+                            return Transform(
+                              alignment: Alignment.centerLeft,
+                              transform: Matrix4.identity()
+                                ..setEntry(3, 2, 0.001)
+                                ..rotateY(waveRotation)
+                                ..translate(
+                                    waveTranslation, 0.0, zTranslation)
+                                ..scale(1.0 -
+                                    ((1 - primaryAnimation.value) * 0.03)),
+                              child: child,
+                            );
+                          },
+                          child: child,
+                        );
+                      },
+                      child: PDFView(
+                        key: ValueKey<int>(currentPage),
+                        filePath: pdfPath,
+                        swipeHorizontal: true,
+                        enableSwipe: false,
+                        defaultPage: currentPage,
+                        fitEachPage: true,
+                        fitPolicy: FitPolicy.BOTH,
+                        onRender: (pages) {
+                          setState(() {
+                            totalPages = pages ?? 0;
+                          });
+                        },
+                        onPageChanged: (page, _) {
+                          setState(() {
+                            currentPage = page ?? 0;
+                            animateForward = currentPage > (prevPage ?? 0);
+                          });
+                        },
+                        onViewCreated: (PDFViewController controller) {
+                          pdfController = controller;
+                        },
+                      ),
+                    ),
+                  if (!animateForward)
+                    PageTransitionSwitcher(
+                      duration: const Duration(milliseconds: 1200),
+                      reverse: false,
+                      transitionBuilder:
+                          (child, primaryAnimation, secondaryAnimation) {
+                        animation = primaryAnimation;
+                        return AnimatedBuilder(
+                          animation: primaryAnimation,
+                          builder: (context, child) {
+                            final double zTranslation =
+                                10.0 * (1 - primaryAnimation.value);
+                            final double waveRotation =
+                                1.5 * (1 - primaryAnimation.value);
+                            final double waveTranslation =
+                                -30.0 * (1 - primaryAnimation.value);
+
+                            return Transform(
+                              alignment: Alignment.centerLeft,
+                              transform: Matrix4.identity()
+                                ..setEntry(3, 2, 0.001)
+                                ..rotateY(waveRotation)
+                                ..translate(
+                                    waveTranslation, 0.0, zTranslation)
+                                ..scale(1.0 -
+                                    ((1 - primaryAnimation.value) * 0.03)),
+                              child: child,
+                            );
+                          },
+                          child: child,
+                        );
+                      },
+                      child: PDFView(
+                        key: ValueKey<int>(currentPage),
+                        filePath: pdfPath,
+                        swipeHorizontal: true,
+                        enableSwipe: false,
+                        defaultPage: currentPage,
+                        fitEachPage: true,
+                        fitPolicy: FitPolicy.BOTH,
+                        onRender: (pages) {
+                          setState(() {
+                            totalPages = pages ?? 0;
+                          });
+                        },
+                        onPageChanged: (page, _) {
+                          setState(() {
+                            currentPage = page ?? 0;
+                            animateForward = currentPage > (prevPage ?? 0);
+                          });
+                        },
+                        onViewCreated: (PDFViewController controller) {
+                          pdfController = controller;
+                        },
+                      ),
+                    ),
+                ],
+              );
+            }
+
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (snapshot.data == null) {
+              // Si hubo error al obtener el PDF, cerrar pantalla
+              Future.microtask(() => Navigator.pop(context));
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            return const Center(child: CircularProgressIndicator());
+          },
+        ),
       ),
     );
   }
 }
 
-class _BotonNavegacion extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
+Future<File?> PdfFromUrl(String url) async {
+  try {
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode != 200) {
+      throw Exception('Error al descargar el PDF: ${response.statusCode}');
+    }
 
-  const _BotonNavegacion({required this.icon, required this.onTap});
+    final Directory cacheDir = await getTemporaryDirectory();
+    final File pdfFile = File('${cacheDir.path}/temp_pdf.pdf');
 
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(40),
-      child: Container(
-        width: 60,
-        height: 60,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, size: 38, color: Color(0xFF242E74)),
-      ),
-    );
+    await pdfFile.writeAsBytes(response.bodyBytes);
+
+    return pdfFile;
+  } catch (e) {
+    debugPrint("Error procesando PDF: $e");
+    return null;
   }
 }

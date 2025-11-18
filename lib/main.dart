@@ -24,7 +24,7 @@ class AprendeTecApp extends StatelessWidget {
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Aprende sobre tecnología',
+      title: 'Bienvenido a Aprende',
       theme: baseTheme.copyWith(
         scaffoldBackgroundColor: const Color(0xFFFDF4F8),
         appBarTheme: const AppBarTheme(
