@@ -1,3 +1,4 @@
+import 'package:aprende_app/exceptions/no_internet_exception.dart';
 import 'package:aprende_app/screens/lista_pdf_screen.dart';
 import 'package:aprende_app/services/agrupador_pdf.dart';
 import 'package:aprende_app/services/tarjeta_services.dart';
@@ -52,14 +53,42 @@ class _CategoriasPdfsScreenState extends State<CategoriasPdfsScreen> {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
-            if (snapshot.hasError) {
-              return Center(
-                child: Text(
-                  'Error al cargar categorías:\n${snapshot.error}',
-                  textAlign: TextAlign.center,
-                ),
-              );
-            }
+           if (snapshot.hasError) {
+  if (snapshot.error is NoInternetException) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.wifi_off, size: 60, color: Colors.grey),
+          const SizedBox(height: 16),
+          const Text(
+            'No hay conexión a internet',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Conéctate para ver las guías disponibles.',
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _futureCategorias = _cargar();
+              });
+            },
+            child: const Text('Reintentar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  return const Center(
+    child: Text('Ocurrió un error al cargar la información'),
+  );
+}
+
 
             final categorias = snapshot.data ?? [];
 
