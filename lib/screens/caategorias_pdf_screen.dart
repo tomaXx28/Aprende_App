@@ -56,16 +56,20 @@ class _CategoriasPdfsScreenState extends State<CategoriasPdfsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        centerTitle: true,
-        title: const Text(
-          'Aprende sobre tecnología',
-          style: TextStyle(
-            fontSize: 22,
-            fontFamily: 'Inter',
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
+  backgroundColor: const Color(0xFF242E74), 
+  elevation: 0,
+  centerTitle: true,
+  toolbarHeight: 72,
+  title: const Text(
+    'Aprende sobre tecnología',
+    style: TextStyle(
+      fontSize: 24,
+      fontFamily: 'Inter',
+      fontWeight: FontWeight.w700,
+      color: Colors.white,
+    ),
+  ),
+),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: FutureBuilder<List<Tarjeta>>(
@@ -140,7 +144,7 @@ class _CategoriaCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(22),
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(22),
@@ -159,8 +163,8 @@ class _CategoriaCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 child: Image.network(
                   categoria.imagen!,
-                  width: 56,
-                  height: 56,
+                  width: 60,
+                  height: 60,
                   fit: BoxFit.cover,
                 ),
               )

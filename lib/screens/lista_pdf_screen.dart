@@ -31,7 +31,7 @@ class ListaPdfsScreen extends StatelessWidget {
           ),
         ),
       ),
-      bottomNavigationBar: const _BottomNavBar(),
+      /* bottomNavigationBar: const _BottomNavBar(), */
       body: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: pdfs.length,
@@ -195,7 +195,7 @@ class _BackButton extends StatelessWidget {
   }
 }
 
-class _BottomNavBar extends StatelessWidget {
+/* class _BottomNavBar extends StatelessWidget {
   const _BottomNavBar();
 
   @override
@@ -219,4 +219,4 @@ class _BottomNavBar extends StatelessWidget {
       onTap: (_) {},
     );
   }
-}
+} */
