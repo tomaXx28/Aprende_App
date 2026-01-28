@@ -1,10 +1,7 @@
-import 'package:aprende_app/services/agrupador_pdf.dart';
-import 'package:aprende_app/services/tarjeta_services.dart';
 import 'package:flutter/material.dart';
-
-import '../models/categoria_pdf.dart';
+import 'package:aprende_app/services/tarjeta_services.dart';
 import '../models/tarjeta.dart';
-import 'visor_pdf_screen.dart';
+import 'lista_pdf_screen.dart';
 
 class CategoriasPdfsScreen extends StatefulWidget {
   const CategoriasPdfsScreen({super.key});
@@ -15,81 +12,101 @@ class CategoriasPdfsScreen extends StatefulWidget {
 
 class _CategoriasPdfsScreenState extends State<CategoriasPdfsScreen> {
   final _service = TarjetasService();
-  late Future<List<Tarjeta>> _futurePdfs;
+  late Future<List<Tarjeta>> _futureCategorias;
+  List<Tarjeta> _todas = [];
 
   @override
   void initState() {
     super.initState();
-    _futurePdfs = _cargarSoloAprende();
+    _futureCategorias = _cargarCategorias();
   }
 
-  /// 🔥 Carga solo los PDFs de la categoría "Aprende a usar tu celular"
-  Future<List<Tarjeta>> _cargarSoloAprende() async {
+  /// ⭐ Carga carpetas de "Aprende sobre tecnología" (id = 3)
+  Future<List<Tarjeta>> _cargarCategorias() async {
     final tarjetas = await _service.obtenerTarjetas();
-    final categorias = agruparPorCategoria(tarjetas);
+    _todas = tarjetas;
 
-    // Buscar categoría exacta
-    final cat = categorias.firstWhere(
-      (c) =>
-          (c.categoria.titulo ?? "").toLowerCase() ==
-          "aprende a usar tu celular".toLowerCase(),
-      orElse: () => CategoriaPdf(
-        categoria: Tarjeta(id: 0, titulo: "", subtitulo: "", tipoContenido: ''),
-        pdfs: [],
-      ),
-    );
+    // raíz real
+    final raiz = tarjetas.firstWhere((t) => t.id == 3);
 
-    return cat.pdfs; // <-- PDFs ya filtrados
+    // carpetas hijas
+    final carpetas = tarjetas.where((t) {
+      final titulo = (t.titulo ?? "").toLowerCase().trim();
+      return t.idPadre == raiz.id &&
+          t.tipoContenido.toLowerCase() != "pdf" &&
+          titulo != "pinterest" &&
+          titulo != "habilidades digitales" &&
+          titulo != "aprende a usar aplicaciones";
+    }).toList();
+
+    return carpetas;
+  }
+
+  int? _obtenerIdLista(Tarjeta categoria) {
+    try {
+      final contenido = categoria.contenido;
+      if (contenido == null) return null;
+      return int.tryParse(contenido["id_lista"].toString());
+    } catch (_) {
+      return null;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leadingWidth: 80,
-        leading: const SizedBox.shrink(),
-        title: const Text('Bienvenido a Aprende'),
+        centerTitle: true,
+        title: const Text(
+          'Aprende sobre tecnología',
+          style: TextStyle(
+            fontSize: 22,
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w700,
+          ),
+        ),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: FutureBuilder<List<Tarjeta>>(
-          future: _futurePdfs,
+          future: _futureCategorias,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
             if (snapshot.hasError) {
-              return Center(
-                child: Text(
-                  'Error al cargar PDFs:\n${snapshot.error}',
-                  textAlign: TextAlign.center,
-                ),
-              );
+              return Center(child: Text('Error: ${snapshot.error}'));
             }
 
-            final pdfs = snapshot.data ?? [];
+            final categorias = snapshot.data ?? [];
 
-            if (pdfs.isEmpty) {
-              return const Center(
-                child: Text('No hay guías disponibles por ahora.'),
-              );
+            if (categorias.isEmpty) {
+              return const Center(child: Text('No hay contenido disponible.'));
             }
 
-            /// 🔥 MOSTRAR PDFS DIRECTAMENTE EN EL HOME
             return ListView.separated(
-              itemCount: pdfs.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 16),
+              itemCount: categorias.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 18),
               itemBuilder: (_, i) {
-                final pdf = pdfs[i];
-                return _PdfCard(
-                  pdf: pdf,
+                final categoria = categorias[i];
+
+                return _CategoriaCard(
+                  categoria: categoria,
                   onTap: () {
+                    final idLista = _obtenerIdLista(categoria);
+
+                    final pdfs = _todas.where((t) {
+                      return idLista != null &&
+                          t.idPadre == idLista &&
+                          t.tipoContenido.toLowerCase() == "pdf";
+                    }).toList();
+
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => VisorPdfScreen(
-                          url: pdf.urlPdf ?? "",
-                          titulo: pdf.titulo ?? "Guía",
+                        builder: (_) => ListaPdfsScreen(
+                          categoria: categoria,
+                          pdfs: pdfs,
                         ),
                       ),
                     );
@@ -105,78 +122,79 @@ class _CategoriasPdfsScreenState extends State<CategoriasPdfsScreen> {
 }
 
 /// ---------------------------------------------------------------------------
-/// 🔥  MISMA TARJETA PDF QUE USAS EN LISTA_PDF_SCREEN
+/// TARJETA DE CATEGORÍA (UI NUEVA)
 /// ---------------------------------------------------------------------------
 
-class _PdfCard extends StatelessWidget {
-  final Tarjeta pdf;
+class _CategoriaCard extends StatelessWidget {
+  final Tarjeta categoria;
   final VoidCallback onTap;
 
-  const _PdfCard({required this.pdf, required this.onTap});
-
-  Widget _buildPdfLeading(Tarjeta pdf) {
-    if (pdf.imagen != null && pdf.imagen!.trim().isNotEmpty) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Image.network(
-          pdf.imagen!,
-          width: 42,
-          height: 42,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) =>
-              const Icon(Icons.picture_as_pdf, size: 42, color: Colors.red),
-        ),
-      );
-    }
-
-    return const Icon(Icons.picture_as_pdf, size: 42, color: Colors.red);
-  }
+  const _CategoriaCard({
+    required this.categoria,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final title = pdf.titulo ?? 'Sin título';
-    final subtitle = pdf.subtitulo ?? '';
-
     return InkWell(
-      borderRadius: BorderRadius.circular(24),
+      borderRadius: BorderRadius.circular(22),
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(22),
           boxShadow: [
             BoxShadow(
+              color: Colors.black.withOpacity(0.07),
               blurRadius: 8,
-              offset: const Offset(0, 4),
-              color: Colors.black.withOpacity(0.08),
+              offset: const Offset(0, 3),
             ),
           ],
         ),
         child: Row(
           children: [
-            _buildPdfLeading(pdf),
-            const SizedBox(width: 16),
+            if (categoria.imagen != null)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  categoria.imagen!,
+                  width: 56,
+                  height: 56,
+                  fit: BoxFit.cover,
+                ),
+              )
+            else
+              const Icon(Icons.folder, size: 56),
+            const SizedBox(width: 18),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                  ),
-                  if (subtitle.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: Theme.of(context).textTheme.bodyMedium,
+                    categoria.titulo ?? '',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w700,
                     ),
-                  ],
+                  ),
+                  if ((categoria.subtitulo ?? '').isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        categoria.subtitulo!,
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontFamily: 'Inter',
+                          color: Color(0xFF4A4A4A),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
+            const Icon(Icons.arrow_forward_ios_rounded),
           ],
         ),
       ),
