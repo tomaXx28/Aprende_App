@@ -1,3 +1,4 @@
+import 'package:aprende_app/exceptions/no_internet_exception.dart';
 import 'package:flutter/material.dart';
 import 'package:aprende_app/services/tarjeta_services.dart';
 import '../models/tarjeta.dart';
@@ -79,8 +80,41 @@ class _CategoriasPdfsScreenState extends State<CategoriasPdfsScreen> {
               return const Center(child: CircularProgressIndicator());
             }
             if (snapshot.hasError) {
-              return Center(child: Text('Error: ${snapshot.error}'));
-            }
+  if (snapshot.error is NoInternetException) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.wifi_off, size: 60, color: Colors.grey),
+          const SizedBox(height: 16),
+          const Text(
+            'No hay conexión a internet',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Conéctate para ver las guías disponibles.',
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _futureCategorias = _cargarCategorias();
+              });
+            },
+            child: const Text('Reintentar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  return const Center(
+    child: Text('Ocurrió un error al cargar la información'),
+  );
+}
+
 
             final categorias = snapshot.data ?? [];
 
