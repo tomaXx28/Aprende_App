@@ -7,7 +7,6 @@ class ListaPdfsScreen extends StatelessWidget {
   final Tarjeta categoria;
   final List<Tarjeta> pdfs;
 
-
   const ListaPdfsScreen({
     super.key,
     required this.categoria,
@@ -20,9 +19,17 @@ class ListaPdfsScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
+        centerTitle: true,
         leadingWidth: 80,
-        leading: _BackButton(),
-        title: Text(title),
+        leading: const _BackButton(),
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontSize: 22,
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w700,
+          ),
+        ),
       ),
       bottomNavigationBar: const _BottomNavBar(),
       body: ListView.separated(
@@ -39,11 +46,10 @@ class ListaPdfsScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder:
-                      (_) => VisorPdfScreen(
-                        url: pdf.urlPdf!,
-                        titulo: pdf.titulo ?? 'Guía',
-                      ),
+                  builder: (_) => VisorPdfScreen(
+                    url: pdf.urlPdf!,
+                    titulo: pdf.titulo ?? 'Guía',
+                  ),
                 ),
               );
             },
@@ -61,24 +67,21 @@ class _PdfCard extends StatelessWidget {
   const _PdfCard({required this.pdf, required this.onTap});
 
   Widget _buildPdfLeading(Tarjeta pdf) {
-    // 1) Si el PDF tiene imagenURL → usarla
     if (pdf.imagen != null && pdf.imagen!.trim().isNotEmpty) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Image.network(
           pdf.imagen!,
-          width: 42,
-          height: 42,
+          width: 48,
+          height: 48,
           fit: BoxFit.cover,
-          errorBuilder:
-              (_, __, ___) =>
-                  const Icon(Icons.picture_as_pdf, size: 42, color: Colors.red),
+          errorBuilder: (_, __, ___) =>
+              const Icon(Icons.picture_as_pdf, size: 48, color: Colors.red),
         ),
       );
     }
 
-    // 2) Si no tiene imagen → ícono PDF rojo
-    return const Icon(Icons.picture_as_pdf, size: 42, color: Colors.red);
+    return const Icon(Icons.picture_as_pdf, size: 48, color: Colors.red);
   }
 
   @override
@@ -105,27 +108,39 @@ class _PdfCard extends StatelessWidget {
         child: Row(
           children: [
             _buildPdfLeading(pdf),
-            const SizedBox(width: 16),
+            const SizedBox(width: 18),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // ⭐ TÍTULO GRANDE
                   Text(
                     title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w700,
+                      height: 1.15,
+                      color: Colors.black,
                     ),
                   ),
                   if (subtitle.isNotEmpty) ...[
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
+                    // ⭐ SUBTÍTULO LEGIBLE
                     Text(
                       subtitle,
-                      style: Theme.of(context).textTheme.bodyMedium,
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontFamily: 'Inter',
+                        color: Color(0xFF4A4A4A),
+                        height: 1.3,
+                      ),
                     ),
                   ],
                 ],
               ),
             ),
+            const Icon(Icons.arrow_forward_ios_rounded, size: 18),
           ],
         ),
       ),
@@ -134,6 +149,8 @@ class _PdfCard extends StatelessWidget {
 }
 
 class _BackButton extends StatelessWidget {
+  const _BackButton();
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -142,8 +159,8 @@ class _BackButton extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 60,
-            height: 60,
+            width: 56,
+            height: 56,
             decoration: const BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
@@ -158,7 +175,7 @@ class _BackButton extends StatelessWidget {
             ),
             child: IconButton(
               padding: EdgeInsets.zero,
-              iconSize: 40,
+              iconSize: 36,
               onPressed: () => Navigator.pop(context),
               icon: const Icon(Icons.arrow_back, color: Color(0xFF242E74)),
             ),
@@ -166,7 +183,11 @@ class _BackButton extends StatelessWidget {
           const SizedBox(height: 2),
           const Text(
             'Volver',
-            style: TextStyle(color: Colors.white, fontSize: 15),
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 15,
+              fontFamily: 'Inter',
+            ),
           ),
         ],
       ),
