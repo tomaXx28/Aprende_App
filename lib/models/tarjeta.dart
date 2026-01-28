@@ -1,5 +1,5 @@
-
 import 'dart:convert';
+
 class Tarjeta {
   final int id;
   final String? titulo;
@@ -10,6 +10,9 @@ class Tarjeta {
   final String? urlPdf;
   final String? imagen;
 
+  /// ⭐ CLAVE: contenido completo (aquí viene id_lista)
+  final Map<String, dynamic>? contenido;
+
   Tarjeta({
     required this.id,
     this.titulo,
@@ -19,15 +22,26 @@ class Tarjeta {
     this.disenoTarjeta,
     this.urlPdf,
     this.imagen,
+    this.contenido,
   });
 
   factory Tarjeta.fromJson(Map<String, dynamic> json) {
-    final contenido = json['contenido'];
+    // contenido puede traer id_lista, url, etc.
+    final dynamic contenidoRaw = json['contenido'];
 
+    final Map<String, dynamic>? contenido =
+        contenidoRaw is Map<String, dynamic>
+            ? Map<String, dynamic>.from(contenidoRaw)
+            : null;
+
+    // URL del PDF (cuando corresponde)
     String? pdfUrl;
-    if (contenido is Map && contenido['url'] != null) {
+    if (contenido != null &&
+        contenido.containsKey('url') &&
+        contenido['url'] != null) {
       pdfUrl = contenido['url'].toString();
     }
+
     return Tarjeta(
       id: int.tryParse(json['id'].toString()) ?? 0,
       titulo: fixWeirdAccents(json['titulo']?.toString() ?? ''),
@@ -40,7 +54,6 @@ class Tarjeta {
       urlPdf: pdfUrl,
 
       imagen: () {
-        // Aceptar todas las variantes que usa el backend
         final posiblesKeys = [
           'imagenURL',
           'imagenUrl',
@@ -57,48 +70,46 @@ class Tarjeta {
         }
         return null;
       }(),
+
+      /// ⭐ guardamos TODO el contenido
+      contenido: contenido,
     );
   }
-
 }
+
+/// ---------------------------------------------------------------------------
+/// FIXES DE TEXTO / ENCODING
+/// ---------------------------------------------------------------------------
+
 String fixWeirdAccents(String text) {
   return text
-      .replaceAll('%cc%81', 'í')
-      .replaceAll('%CC%81', 'í')
-      .replaceAll('%c3%ad', 'í')
-      .replaceAll('%C3%AD', 'í')
-
-      // otros patrones que podrían aparecer
-      .replaceAll('%cc%81', '́') // acento suelto
-      .replaceAll('í', 'í')
-      .replaceAll('Í', 'Í');
+      .replaceAll('Ã¡', 'á')
+      .replaceAll('Ã©', 'é')
+      .replaceAll('Ã­', 'í')
+      .replaceAll('Ã³', 'ó')
+      .replaceAll('Ãº', 'ú')
+      .replaceAll('Ã±', 'ñ')
+      .replaceAll('Ã', 'Á')
+      .replaceAll('Ã‰', 'É')
+      .replaceAll('Ã', 'Í')
+      .replaceAll('Ã“', 'Ó')
+      .replaceAll('Ãš', 'Ú')
+      .replaceAll('Ã‘', 'Ñ')
+      .replaceAll('â', '’')
+      .replaceAll('â', '–')
+      .replaceAll('â', '“')
+      .replaceAll('â', '”')
+      .replaceAll('Â¿', '¿')
+      .replaceAll('Â¡', '¡')
+      .replaceAll('Âº', 'º')
+      .replaceAll('Â°', '°')
+      .replaceAll('â€¢', '•')
+      .replaceAll('â¢', '•');
 }
 
-
 String normalizeBrokenUtf(String text) {
-  if (text.isEmpty) return text;
-
   try {
-    // 1) Reemplaza los %xx por su byte real
-    final bytes = <int>[];
-    for (var i = 0; i < text.length; i++) {
-      if (text[i] == '%' && i + 2 < text.length) {
-        final hex = text.substring(i + 1, i + 3);
-        final val = int.tryParse(hex, radix: 16);
-        if (val != null) {
-          bytes.add(val);
-          i += 2; // saltar los dos dígitos
-          continue;
-        }
-      }
-      bytes.add(text.codeUnitAt(i));
-    }
-
-    // 2) Decodifica como UTF-8
-    final decoded = utf8.decode(bytes, allowMalformed: true);
-
-    // 3) Normaliza a NFC (caracteres compuestos)
-    return decoded;
+    return utf8.decode(latin1.encode(text));
   } catch (_) {
     return text;
   }
